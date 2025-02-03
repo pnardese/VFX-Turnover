@@ -275,7 +275,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:  # Check if no arguments are given
         parser.print_help(sys.stderr)  # Print help message
-        sys.exit(1) # Exit program
+        sys.exit(0) # Exit program
     
     if args.edl:
         edl_file_path =  args.edl # EDL input 
