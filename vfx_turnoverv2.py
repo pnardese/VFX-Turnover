@@ -47,7 +47,7 @@ def edl_to_json(edl_file: str, json_file: str):
     TITLE = ""
     FCM = ""
     last_scene = 0
-    FILM_CODE = "EPSV"
+    FILM_CODE = "EPSV" # Define film code
 
     try:
         with open(edl_file, 'r') as f:
@@ -141,8 +141,7 @@ def json_to_subcaps(json_file_path: str, sub_file_path: str):
 
 def export_ale_pulls(json_file_path: str, ale_pulls_file_path: str):
     """Export an ALE for creating pulls in AVID. 24 fps"""
-    heading = \
-'Heading\n\
+    heading = 'Heading\n\
 FIELD_DELIM' + '\t' +'TABS\n\
 VIDEO_FORMAT' + '\t' + '1080\n\
 AUDIO_FORMAT' + '\t' + '48khz\n\
@@ -155,6 +154,7 @@ Data\n\
 
     fps = 24  # Define frame rate
     handles = 10  # Define handles
+    handles_TC = Timecode(fps, '00:00:00:' + str(handles))
     with open(json_file_path) as input_file:
         json_file = json.load(input_file) # Load JSON file
     
@@ -163,9 +163,9 @@ Data\n\
         with open(ale_pulls_file_path, 'a') as output_file:
             output_file.write(heading) # Write heading to ALE file
             for i in range(len(json_file['events'])):
-                new_source_start_TC = Timecode(fps, json_file['events'][i]['source_start_TC']) - Timecode(24, '00:00:00:' + str(handles)) # Define new source start timecode
-                new_source_end_TC = Timecode(fps, json_file['events'][i]['source_end_TC']) + Timecode(24, '00:00:00:' + str(handles)) # Define new source end timecode
-                sub_file_line = json_file['events'][i]['VFX ID'] + '\t' + 'V' + '\t' + new_source_start_TC + '\t' + new_source_end_TC + \
+                new_source_start_TC = Timecode(fps, json_file['events'][i]['source_start_TC']) - handles_TC # Define new source start timecode with handles
+                new_source_end_TC = Timecode(fps, json_file['events'][i]['source_end_TC']) + handles_TC # Define new source end timecode with handles
+                sub_file_line = json_file['events'][i]['VFX ID'] + '\t' + 'V' + '\t' + str(new_source_start_TC) + '\t' + str(new_source_end_TC) + \
                 '\t' + json_file['events'][i]['reel'] + '\n' # Define ALE file line
                 output_file.write(sub_file_line) # Write line to ALE file
             print(f"Succesfully exported ALE file: {ale_pulls_file_path}")  # Print success message
