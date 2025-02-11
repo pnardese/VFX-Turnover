@@ -6,6 +6,11 @@ import sys
 from timecode import Timecode
 from pandas import read_csv
 
+'''
+Version 2 add handles to ALE for pulls
+
+'''
+
 def edl_to_json(edl_file: str, json_file: str):
     """Reads an EDL file, parses it, and writes the data to a JSON file."""
     
@@ -42,7 +47,6 @@ def edl_to_json(edl_file: str, json_file: str):
     TITLE = ""
     FCM = ""
     last_scene = 0
-    FILM_CODE = "EPSV"
 
     try:
         with open(edl_file, 'r') as f:
@@ -135,9 +139,8 @@ def json_to_subcaps(json_file_path: str, sub_file_path: str):
 
 
 def export_ale_pulls(json_file_path: str, ale_pulls_file_path: str):
-    """Export an ALE for creating pulls in AVID."""
-    heading = \
-'Heading\n\
+    """Export an ALE for creating pulls in AVID. 24 fps"""
+    heading = 'Heading\n\
 FIELD_DELIM' + '\t' +'TABS\n\
 VIDEO_FORMAT' + '\t' + '1080\n\
 AUDIO_FORMAT' + '\t' + '48khz\n\
@@ -148,6 +151,7 @@ Name' + '\t' + 'Tracks' + '\t' + 'Start' + '\t' + 'End' + '\t' + 'Tape\n\
 Data\n\
 \n' # Define ALE heading
 
+    handles_TC = Timecode(fps, '00:00:00:' + str(handles))
     with open(json_file_path) as input_file:
         json_file = json.load(input_file) # Load JSON file
     
@@ -156,7 +160,9 @@ Data\n\
         with open(ale_pulls_file_path, 'a') as output_file:
             output_file.write(heading) # Write heading to ALE file
             for i in range(len(json_file['events'])):
-                sub_file_line = json_file['events'][i]['VFX ID'] + '\t' + 'V' + '\t' + json_file['events'][i]['source_start_TC'] + '\t' + json_file['events'][i]['source_end_TC'] + \
+                new_source_start_TC = Timecode(fps, json_file['events'][i]['source_start_TC']) - handles_TC # Define new source start timecode with handles
+                new_source_end_TC = Timecode(fps, json_file['events'][i]['source_end_TC']) + handles_TC # Define new source end timecode with handles
+                sub_file_line = json_file['events'][i]['VFX ID'] + '\t' + 'V' + '\t' + str(new_source_start_TC) + '\t' + str(new_source_end_TC) + \
                 '\t' + json_file['events'][i]['reel'] + '\n' # Define ALE file line
                 output_file.write(sub_file_line) # Write line to ALE file
             print(f"Succesfully exported ALE file: {ale_pulls_file_path}")  # Print success message
@@ -208,7 +214,7 @@ def export_dummy_edl(json_file_path: str, dummy_edl_file_path: str):
 
 def export_google_tab(json_file_path: str, google_file_path: str):
     """Export a TAB file to import into a Spreadsheet."""
-    fps = '24'  # Define frame rate
+    
     with open(json_file_path) as input_file:    # Open JSON file
         json_file = json.load(input_file)   # Load JSON file
     if os.path.exists(google_file_path): os.remove(google_file_path)    # Remove file if it exists
@@ -259,6 +265,11 @@ def export_final_vfx_edl(json_file_path: str, final_vfx_bin: str, edl_final_file
 
 
 if __name__ == "__main__":
+
+    global FILM_CODE, fps, handles, VIDEO_FORMAT, AUDIO_FORMAT
+    FILM_CODE='EPSV' # Define film code
+    fps='24'  # Define frame rate
+    handles=10  # Define handles
 
     parser = argparse.ArgumentParser(description='Import EDL, create JSON and export various stuff for AVID')   # Define parser
 
